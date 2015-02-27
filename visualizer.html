@@ -111,12 +111,17 @@ $(function(){
         if (line.substr(0, matchPrefixLength) === matchPrefix) {
           call.setEnd(line.split('\t'));
           calls.push(call);
+          call = undefined;
           mode = SEEKING;
         } else {
           call.addInternal(line);
         }
         
       }
+    }
+    if (call !== undefined) {
+      call.setEnd(lines[i-4].split('\t'));
+      calls.push(call);
     }
     return calls;
   }
