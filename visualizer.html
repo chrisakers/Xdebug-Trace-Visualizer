@@ -10,6 +10,7 @@
   
 HTML, BODY {
   height: 100%;
+  font-family: sans-serif;
 }
 #flamegraph {
   background-color: #464646;
@@ -21,14 +22,25 @@ rect {
   float:right;
 }
 
+h1 {
+  text-align: center;
+  margin: 0 auto 20px;
+  padding: 20px 0;
+  display: block;
+  border-bottom: 2px solid #000000;
+}
+
+#loading {
+  text-align: center;
+  font-style: italic;
+  display: none;
+}
+
     </style>
   </head>
   <body>
-    <div id="controls">
-      <div id=highlight>Highlight<input></div>
-      <input type="checkbox" id="show-php">PHP Functions
-    </div>
-    <div id="flamegraph"></div>
+  <h1 id="header">Drag and drop a trace-file here</h1>
+  <div id="flamegraph"></div>
     <div id="status"></div>
     <div id="listview"></div>
   <script>
@@ -220,6 +232,8 @@ $(function(){
       $(rect.node).attr('class', call.fileName);
       render.calls(paper, call.calls, translate);
     }
+
+    $('#header').html('Drag and drop a trace-file here');
   };
   
   
@@ -247,9 +261,12 @@ $(function(){
     })
     .on('drop', function (e) {
       if (e.originalEvent.dataTransfer && e.originalEvent.dataTransfer.files.length) {
+        $('#header').html('Loading...');
         e.preventDefault();
         e.stopPropagation();
-        read(e.originalEvent.dataTransfer.files);
+        setTimeout(function() {
+          read(e.originalEvent.dataTransfer.files);
+        }, 100);
       }
     });
   
