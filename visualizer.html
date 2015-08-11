@@ -24,22 +24,27 @@ rect {
 
 h1 {
   text-align: center;
-  margin: 0 auto 20px;
+  margin: 0 auto;
   padding: 20px 0;
   display: block;
+}
+
+#controls {
+  width: 80%;
+  margin: 0 auto 20px;
+  padding: 0 0 20px;
   border-bottom: 2px solid #000000;
 }
-
-#loading {
-  text-align: center;
-  font-style: italic;
-  display: none;
-}
-
     </style>
   </head>
   <body>
   <h1 id="header">Drag and drop a trace-file here</h1>
+  <div id="controls">
+    <label>
+      <input type="checkbox" id="render-all">
+      Render <i>all</i> function calls (takes a lot more time)
+    </label>
+  </div>
   <div id="flamegraph"></div>
     <div id="status"></div>
     <div id="listview"></div>
@@ -180,7 +185,7 @@ $(function(){
   function rand_between(min, max) {
     return min + Math.ceil( (max-min+1) * Math.random() ) - 1;
   }
-  
+
   function clear(){
     this.node.style.cssText = '';
     $status.text('');
@@ -210,10 +215,10 @@ $(function(){
     var zpd = new RaphaelZPD(paper, { zoom: true, pan: true, drag: false });
     translate.setOutputCoordinates(0, outputWidth, outputHeight, 0);
     translate.setInputCoordinates(trace.stackBounds.high, trace.timeBounds.high, trace.stackBounds.low - 1, trace.timeBounds.low);
-    
-    render.calls(paper, trace.calls, translate);
+
+    render.calls(paper, trace.calls, translate, $('#render-all').is(':checked'));
   }
-  render.calls = function (paper, calls, translate) {
+  render.calls = function (paper, calls, translate, render_all) {
     var call,
         i = 0,
         duration_pct,
@@ -221,6 +226,9 @@ $(function(){
     
     for (;(call = calls[i++]);) {
       duration_pct = timePercentage(call.timeIndex.end - call.timeIndex.start);
+      if(!render_all && duration_pct < 0.0008) {
+        continue;
+      }
       rect = paper.rect(
         translate.x(call.timeIndex.start),
         translate.y(call.level),
@@ -230,7 +238,7 @@ $(function(){
         fill: 'rgb(' + rand_between(90, 100) + '%,' + ((1-duration_pct) * 80) + '%,0%)'
       }).hover(statusFn(call), clear);
       $(rect.node).attr('class', call.fileName);
-      render.calls(paper, call.calls, translate);
+      render.calls(paper, call.calls, translate, render_all);
     }
 
     $('#header').html('Drag and drop a trace-file here');
