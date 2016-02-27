@@ -3,6 +3,22 @@ Xdebug Trace Visualizer
 
 A lightweight Xdebug trace file visualizer that helps you to uncover performance issues and gain insight into your code.
 
+The actual code is in the [gh-pages](https://github.com/olemartinorg/Xdebug-Trace-Visualizer/tree/gh-pages) branch.
+
+Configuration
+-----
+
+Make sure you have this set in your ```php.ini```/```xdebug.ini```:
+```
+xdebug.trace_format = 1
+```
+
+I also recommend setting ```xdebug.trace_enable_trigger = 1```, so that you can create [bookmarklets](https://www.jetbrains.com/phpstorm/marklets/) for enabling/disabling the tracer.
+
+Usage
+----
+Open [Xdebug-Trace-Visualizer](http://olemartinorg.github.io/Xdebug-Trace-Visualizer/) in your browser and drag an xdebug trace file into the window. The files can be found in the folder defined in ```xdebug.trace_output_dir``` (defaults to ```/tmp```).
+
 
 License
 =======
