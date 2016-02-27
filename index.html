@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8 />
+    <title>Xdebug Trace Visualizer</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+    <script src="//raw.github.com/andrewseddon/raphael-zpd/master/raphael-zpd.js"></script>
+    <style>
+  
+HTML, BODY {
+  height: 100%;
+  font-family: sans-serif;
+}
+#flamegraph {
+  background-color: #464646;
+}
+rect {
+  stroke: none;
+}
+#highlight {
+  float:right;
+}
+
+h1 {
+  text-align: center;
+  margin: 0 auto;
+  padding: 20px 0;
+  display: block;
+}
+
+#controls {
+  width: 80%;
+  margin: 0 auto 20px;
+  padding: 0 0 20px;
+  border-bottom: 2px solid #000000;
+}
+    </style>
+  </head>
+  <body>
+  <h1 id="header">Drag and drop a trace-file here</h1>
+  <div id="controls">
+    <label>
+      <input type="checkbox" id="render-all">
+      Render <i>all</i> function calls (takes a lot more time)
+    </label>
+  </div>
+  <div id="flamegraph"></div>
+    <div id="status"></div>
+    <div id="listview"></div>
+  <script>
+$(function(){
+
+  var levelBounds  = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY},
+      timeBounds   = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY},
+      memoryBounds = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY};
+  
+  $status = $('#status');
+ 
+  function Call() {
+    this.internals = [];
+  }
+  $.extend(Call.prototype, {
+    setStart: function (fields) {
+      this.level = +fields[0];
+        levelBounds.low = Math.min(levelBounds.low, this.level);
+        levelBounds.high = Math.max(levelBounds.high, this.level);
+      this.functionNumber = +fields[1];
+      this.timeIndex = {start: +fields[3]};
+        timeBounds.low = Math.min(timeBounds.low, this.timeIndex.start);
+      this.memoryUsage = {start: +fields[4]};
+        memoryBounds.low = Math.min(memoryBounds.low, this.memoryUsage.start);
+        memoryBounds.high = Math.max(memoryBounds.high, this.memoryUsage.start);
+      this.functionName = fields[5];
+      this.userDefined = fields[6] === '1';
+      this.includeRequireFile = fields[7];
+      this.fileName = fields[8];
+      this.lineNumber = +fields[9];
+    },
+    addInternal: function (line) {
+      this.internals.push(line);
+    },
+    setEnd: function (fields) {
+      this.timeIndex.end = +fields[3];
+        timeBounds.high = Math.max(timeBounds.high, this.timeIndex.end);
+      this.memoryUsage.end = +fields[4];
+        memoryBounds.low = Math.min(memoryBounds.low, this.memoryUsage.end);
+        memoryBounds.high = Math.max(memoryBounds.high, this.memoryUsage.end);
+      this.calls = getCalls(this.internals);
+      delete this.internals;
+    }
+  });
+  
+  function Trace(traceStr) {
+    this.calls = getCalls(traceStr.split(/\r\n|\r|\n/g));
+    this.stackBounds = levelBounds;
+    this.timeBounds = timeBounds;
+    this.memoryBounds = memoryBounds;
+  }
+  
+
+  function getCalls(lines) {
+    var calls = [],
+        SEEKING = 'seeking',
+        MATCHING = 'matching',
+        mode = SEEKING,
+        line,
+        i = 0,
+        fields,
+        call,
+        matchPrefix,
+        matchPrefixLength;
+    
+    for (;(line = lines[i++]);) {
+      if (mode === SEEKING) {
+        
+        fields = line.split('\t');
+        if (fields.length === 10) {
+          call = new Call();
+          call.setStart(fields);
+          mode = MATCHING;
+          matchPrefix = call.level + '\t' + call.functionNumber + '\t1\t';
+          matchPrefixLength = matchPrefix.length;
+        }      
+        
+      } else if (mode == MATCHING) {
+        
+        if (line.substr(0, matchPrefixLength) === matchPrefix) {
+          call.setEnd(line.split('\t'));
+          calls.push(call);
+          call = undefined;
+          mode = SEEKING;
+        } else {
+          call.addInternal(line);
+        }
+        
+      }
+    }
+    if (call !== undefined) {
+      call.setEnd(lines[i-4].split('\t'));
+      calls.push(call);
+    }
+    return calls;
+  }
+  
+  
+  function timePercentage(duration) {
+    return duration / (timeBounds.high - timeBounds.low);
+  }
+
+  
+  function Translator(){}
+  $.extend(Translator.prototype, {
+    setInputCoordinates: function (t, r, b, l) {
+      this.inputCoordinates = {
+        top: t,
+        right: r,
+        bottom: b,
+        left: l
+      };
+    },
+    setOutputCoordinates: function (t, r, b, l) {
+      this.outputCoordinates = {
+        top: t,
+        right: r,
+        bottom: b,
+        left: l
+      };
+    },
+    x: function (inputX) {
+      return (((inputX - this.inputCoordinates.left) / (this.inputCoordinates.right - this.inputCoordinates.left)) * (this.outputCoordinates.right - this.outputCoordinates.left)) + this.outputCoordinates.left;
+    },
+    y: function (inputY) {
+      return (((inputY - this.inputCoordinates.top) / (this.inputCoordinates.bottom - this.inputCoordinates.top)) * (this.outputCoordinates.bottom - this.outputCoordinates.top)) + this.outputCoordinates.top;
+    },
+    width: function (inputWidth) {
+      return (inputWidth / (this.inputCoordinates.right - this.inputCoordinates.left)) * (this.outputCoordinates.right - this.outputCoordinates.left);
+    },
+    height: function (inputHeight) {
+      return (inputHeight / (this.inputCoordinates.bottom - this.inputCoordinates.top)) * (this.outputCoordinates.bottom - this.outputCoordinates.top);
+    }
+  });
+  
+  
+  function rand_between(min, max) {
+    return min + Math.ceil( (max-min+1) * Math.random() ) - 1;
+  }
+
+  function clear(){
+    this.node.style.cssText = '';
+    $status.text('');
+  }
+  
+  function statusFn(call){
+    return function () {
+      //console.log(this);
+      this.node.style.cssText = 'stroke: #000; stroke-width: 1;';
+      $status.html(
+        'Function: ' + call.functionName + '<br>' +
+        'File: ' + call.fileName + '<br>' +
+        'Line: ' + call.lineNumber + '<br>' +
+        'Time: ' + (call.timeIndex.end - call.timeIndex.start) + ' seconds (' + (timePercentage(call.timeIndex.end - call.timeIndex.start) * 100) + '%)'
+      );
+    };
+  }
+  
+  
+  function render(trace) {
+    var translate = new Translator(),
+        $container = $('#flamegraph'),
+        outputWidth = $container.width(),
+        outputHeight = Math.max($container.height(), 500),
+        paper = new Raphael($container[0], outputWidth, outputHeight);
+    
+    var zpd = new RaphaelZPD(paper, { zoom: true, pan: true, drag: false });
+    translate.setOutputCoordinates(0, outputWidth, outputHeight, 0);
+    translate.setInputCoordinates(trace.stackBounds.high, trace.timeBounds.high, trace.stackBounds.low - 1, trace.timeBounds.low);
+
+    render.calls(paper, trace.calls, translate, $('#render-all').is(':checked'));
+  }
+  render.calls = function (paper, calls, translate, render_all) {
+    var call,
+        i = 0,
+        duration_pct,
+        rect;
+    
+    for (;(call = calls[i++]);) {
+      duration_pct = timePercentage(call.timeIndex.end - call.timeIndex.start);
+      if(!render_all && duration_pct < 0.0008) {
+        continue;
+      }
+      rect = paper.rect(
+        translate.x(call.timeIndex.start),
+        translate.y(call.level),
+        translate.width(call.timeIndex.end - call.timeIndex.start),
+        translate.height(-1)
+      ).attr({
+        fill: 'rgb(' + rand_between(90, 100) + '%,' + ((1-duration_pct) * 80) + '%,0%)'
+      }).hover(statusFn(call), clear);
+      $(rect.node).attr('class', call.fileName);
+      render.calls(paper, call.calls, translate, render_all);
+    }
+
+    $('#header').html('Drag and drop a trace-file here');
+  };
+  
+  
+  
+  function read(files) {
+    var file = files[0],
+        reader = new FileReader();
+    reader.onload = function (e) {
+      var content = e.target.result,
+          trace;
+      //$('#listview').append(file.name + ' ' + file.size + '<pre>' + content + '</pre>');
+      trace = new Trace(content);
+      render(trace);
+      //console.log(trace);
+    };
+    reader.readAsText(file);
+  }
+  
+  
+  
+  $('body')
+    .on('dragenter dragover', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    })
+    .on('drop', function (e) {
+      if (e.originalEvent.dataTransfer && e.originalEvent.dataTransfer.files.length) {
+        $('#header').html('Loading...');
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(function() {
+          read(e.originalEvent.dataTransfer.files);
+        }, 100);
+      }
+    });
+  
+  
+});
+</script>
+</body>
+</html>
