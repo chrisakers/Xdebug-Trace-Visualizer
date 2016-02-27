@@ -19,6 +19,9 @@ Usage
 ----
 Open [Xdebug-Trace-Visualizer](http://olemartinorg.github.io/Xdebug-Trace-Visualizer/) in your browser and drag an xdebug trace file into the window. The files can be found in the folder defined in ```xdebug.trace_output_dir``` (defaults to ```/tmp```).
 
+Example
+---
+![screenshot of a fire graph](https://raw.githubusercontent.com/olemartinorg/Xdebug-Trace-Visualizer/master/screenshot.png)
 
 License
 =======
