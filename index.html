@@ -3,11 +3,11 @@
   <head>
     <meta charset=utf-8 />
     <title>Xdebug Trace Visualizer</title>
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
     <script src="raphael-zpd.js"></script>
     <style>
-  
+
 HTML, BODY {
   height: 100%;
   font-family: sans-serif;
@@ -54,9 +54,9 @@ $(function(){
   var levelBounds  = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY},
       timeBounds   = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY},
       memoryBounds = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY};
-  
+
   $status = $('#status');
- 
+
   function Call() {
     this.internals = [];
   }
@@ -90,14 +90,14 @@ $(function(){
       delete this.internals;
     }
   });
-  
+
   function Trace(traceStr) {
     this.calls = getCalls(traceStr.split(/\r\n|\r|\n/g));
     this.stackBounds = levelBounds;
     this.timeBounds = timeBounds;
     this.memoryBounds = memoryBounds;
   }
-  
+
 
   function getCalls(lines) {
     var calls = [],
@@ -110,10 +110,10 @@ $(function(){
         call,
         matchPrefix,
         matchPrefixLength;
-    
+
     for (;(line = lines[i++]);) {
       if (mode === SEEKING) {
-        
+
         fields = line.split('\t');
         if (fields.length === 10) {
           call = new Call();
@@ -121,10 +121,10 @@ $(function(){
           mode = MATCHING;
           matchPrefix = call.level + '\t' + call.functionNumber + '\t1\t';
           matchPrefixLength = matchPrefix.length;
-        }      
-        
+        }
+
       } else if (mode == MATCHING) {
-        
+
         if (line.substr(0, matchPrefixLength) === matchPrefix) {
           call.setEnd(line.split('\t'));
           calls.push(call);
@@ -133,7 +133,7 @@ $(function(){
         } else {
           call.addInternal(line);
         }
-        
+
       }
     }
     if (call !== undefined) {
@@ -142,13 +142,13 @@ $(function(){
     }
     return calls;
   }
-  
-  
+
+
   function timePercentage(duration) {
     return duration / (timeBounds.high - timeBounds.low);
   }
 
-  
+
   function Translator(){}
   $.extend(Translator.prototype, {
     setInputCoordinates: function (t, r, b, l) {
@@ -180,8 +180,8 @@ $(function(){
       return (inputHeight / (this.inputCoordinates.bottom - this.inputCoordinates.top)) * (this.outputCoordinates.bottom - this.outputCoordinates.top);
     }
   });
-  
-  
+
+
   function rand_between(min, max) {
     return min + Math.ceil( (max-min+1) * Math.random() ) - 1;
   }
@@ -190,7 +190,7 @@ $(function(){
     this.node.style.cssText = '';
     $status.text('');
   }
-  
+
   function statusFn(call){
     return function () {
       //console.log(this);
@@ -203,15 +203,15 @@ $(function(){
       );
     };
   }
-  
-  
+
+
   function render(trace) {
     var translate = new Translator(),
         $container = $('#flamegraph'),
         outputWidth = $container.width(),
         outputHeight = Math.max($container.height(), 500),
         paper = new Raphael($container[0], outputWidth, outputHeight);
-    
+
     var zpd = new RaphaelZPD(paper, { zoom: true, pan: true, drag: false });
     translate.setOutputCoordinates(0, outputWidth, outputHeight, 0);
     translate.setInputCoordinates(trace.stackBounds.high, trace.timeBounds.high, trace.stackBounds.low - 1, trace.timeBounds.low);
@@ -223,7 +223,7 @@ $(function(){
         i = 0,
         duration_pct,
         rect;
-    
+
     for (;(call = calls[i++]);) {
       duration_pct = timePercentage(call.timeIndex.end - call.timeIndex.start);
       if(!render_all && duration_pct < 0.0008) {
@@ -243,25 +243,22 @@ $(function(){
 
     $('#header').html('Drag and drop a trace-file here');
   };
-  
-  
-  
+
+
+
   function read(files) {
     var file = files[0],
         reader = new FileReader();
-    reader.onload = function (e) {
-      var content = e.target.result,
-          trace;
-      //$('#listview').append(file.name + ' ' + file.size + '<pre>' + content + '</pre>');
-      trace = new Trace(content);
+
+    reader.addEventListener('loadend', function () {
+      var trace = new Trace(reader.result);
       render(trace);
-      //console.log(trace);
-    };
+    });
     reader.readAsText(file);
   }
-  
-  
-  
+
+
+
   $('body')
     .on('dragenter dragover', function (e) {
       e.preventDefault();
@@ -272,13 +269,11 @@ $(function(){
         $('#header').html('Loading...');
         e.preventDefault();
         e.stopPropagation();
-        setTimeout(function() {
-          read(e.originalEvent.dataTransfer.files);
-        }, 100);
+        read(e.originalEvent.dataTransfer.files);
       }
     });
-  
-  
+
+
 });
 </script>
 </body>
