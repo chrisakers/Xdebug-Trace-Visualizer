@@ -115,9 +115,9 @@ $(function(){
       if (mode === SEEKING) {
 
         fields = line.split('\t');
-        if (fields.length === 10) {
+        if (fields.length > 10) {
           call = new Call();
-          call.setStart(fields);
+          call.setStart(fields.slice(0, 9));
           mode = MATCHING;
           matchPrefix = call.level + '\t' + call.functionNumber + '\t1\t';
           matchPrefixLength = matchPrefix.length;
