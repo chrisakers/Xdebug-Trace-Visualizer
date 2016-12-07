@@ -115,7 +115,7 @@ $(function(){
       if (mode === SEEKING) {
 
         fields = line.split('\t');
-        if (fields.length > 10) {
+        if (fields.length >= 10) {
           call = new Call();
           call.setStart(fields.slice(0, 10));
           mode = MATCHING;
