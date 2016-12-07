@@ -93,8 +93,9 @@ $(function(){
       this.memoryUsage.end = +fields[4];
         memoryBounds.low = Math.min(memoryBounds.low, this.memoryUsage.end);
         memoryBounds.high = Math.max(memoryBounds.high, this.memoryUsage.end);
-      this.calls = getCalls(this.internals);
+      var int = this.internals;
       delete this.internals;
+      this.calls = getCalls(int);
     }
   });
 
