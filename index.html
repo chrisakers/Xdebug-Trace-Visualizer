@@ -221,7 +221,7 @@ $(function(){
       if(call.optionalParameters.length) {
         //convert any HTML into text, and display that
         var field_html = $('<span class="optional-parameters"></span>').text(call.optionalParameters.join('\n')).get(0).outerHTML;
-        optionalParameters = '<br>Fields: ' + field_html;
+        optionalParameters = '<br>Parameters: ' + field_html;
       }
       $status.html(
         'Function: ' + call.functionName + '<br>' +
