@@ -35,6 +35,10 @@ h1 {
   padding: 0 0 20px;
   border-bottom: 2px solid #000000;
 }
+
+.optional-parameters {
+  white-space: pre;
+}
     </style>
   </head>
   <body>
@@ -76,6 +80,7 @@ $(function(){
       this.includeRequireFile = fields[7];
       this.fileName = fields[8];
       this.lineNumber = +fields[9];
+      this.optionalParameters = fields.slice(11);
     },
     addInternal: function (line) {
       this.internals.push(line);
@@ -117,7 +122,7 @@ $(function(){
         fields = line.split('\t');
         if (fields.length >= 10) {
           call = new Call();
-          call.setStart(fields.slice(0, 10));
+          call.setStart(fields);
           mode = MATCHING;
           matchPrefix = call.level + '\t' + call.functionNumber + '\t1\t';
           matchPrefixLength = matchPrefix.length;
@@ -195,11 +200,18 @@ $(function(){
     return function () {
       //console.log(this);
       this.node.style.cssText = 'stroke: #000; stroke-width: 1;';
+      var optionalParameters = '';
+      if(call.optionalParameters.length) {
+        //convert any HTML into text, and display that
+        var field_html = $('<span class="optional-parameters"></span>').text(call.optionalParameters.join('\n')).get(0).outerHTML;
+        optionalParameters = '<br>Fields: ' + field_html;
+      }
       $status.html(
         'Function: ' + call.functionName + '<br>' +
         'File: ' + call.fileName + '<br>' +
         'Line: ' + call.lineNumber + '<br>' +
-        'Time: ' + (call.timeIndex.end - call.timeIndex.start) + ' seconds (' + (timePercentage(call.timeIndex.end - call.timeIndex.start) * 100) + '%)'
+        'Time: ' + (call.timeIndex.end - call.timeIndex.start) + ' seconds (' + (timePercentage(call.timeIndex.end - call.timeIndex.start) * 100) + '%)' +
+        optionalParameters
       );
     };
   }
