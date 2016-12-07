@@ -3,7 +3,7 @@ Xdebug Trace Visualizer
 
 A lightweight Xdebug trace file visualizer that helps you to uncover performance issues and gain insight into your code.
 
-The actual code is in the [gh-pages](https://github.com/olemartinorg/Xdebug-Trace-Visualizer/tree/gh-pages) branch.
+Use the application online at https://chrisakers.github.io/Xdebug-Trace-Visualizer/.
 
 Configuration
 -----
@@ -17,11 +17,16 @@ I also recommend setting ```xdebug.trace_enable_trigger = 1```, so that you can 
 
 Usage
 ----
-Open [Xdebug-Trace-Visualizer](http://olemartinorg.github.io/Xdebug-Trace-Visualizer/) in your browser and drag an xdebug trace file into the window. The files can be found in the folder defined in ```xdebug.trace_output_dir``` (defaults to ```/tmp```).
+Open [Xdebug-Trace-Visualizer](https://chrisakers.github.io/Xdebug-Trace-Visualizer/) in your browser and drag an xdebug trace file into the window. The files can be found in the folder defined in ```xdebug.trace_output_dir``` (defaults to ```/tmp```).
 
 Example
 ---
-![screenshot of a fire graph](https://raw.githubusercontent.com/olemartinorg/Xdebug-Trace-Visualizer/master/screenshot.png)
+![screenshot of a fire graph](screenshot.png)
+
+Contributers
+-----
+
+Thanks to [@olemartinorg](https://github.com/olemartinorg/) for usability, documentation, and bug fixes.
 
 License
 =======
