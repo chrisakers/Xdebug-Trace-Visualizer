@@ -35,6 +35,10 @@ h1 {
   padding: 0 0 20px;
   border-bottom: 2px solid #000000;
 }
+
+.optional-parameters {
+  white-space: pre;
+}
     </style>
   </head>
   <body>
@@ -55,7 +59,9 @@ $(function(){
       timeBounds   = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY},
       memoryBounds = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY};
 
-  $status = $('#status');
+  var $status = $('#status');
+  var frozenCall = null,
+      frozenNode = null;
 
   function Call() {
     this.internals = [];
@@ -76,6 +82,7 @@ $(function(){
       this.includeRequireFile = fields[7];
       this.fileName = fields[8];
       this.lineNumber = +fields[9];
+      this.optionalParameters = fields.slice(11);
     },
     addInternal: function (line) {
       this.internals.push(line);
@@ -86,8 +93,9 @@ $(function(){
       this.memoryUsage.end = +fields[4];
         memoryBounds.low = Math.min(memoryBounds.low, this.memoryUsage.end);
         memoryBounds.high = Math.max(memoryBounds.high, this.memoryUsage.end);
-      this.calls = getCalls(this.internals);
+      var int = this.internals;
       delete this.internals;
+      this.calls = getCalls(int);
     }
   });
 
@@ -115,9 +123,9 @@ $(function(){
       if (mode === SEEKING) {
 
         fields = line.split('\t');
-        if (fields.length > 10) {
+        if (fields.length >= 10) {
           call = new Call();
-          call.setStart(fields.slice(0, 10));
+          call.setStart(fields);
           mode = MATCHING;
           matchPrefix = call.level + '\t' + call.functionNumber + '\t1\t';
           matchPrefixLength = matchPrefix.length;
@@ -186,22 +194,63 @@ $(function(){
     return min + Math.ceil( (max-min+1) * Math.random() ) - 1;
   }
 
-  function clear(){
-    this.node.style.cssText = '';
-    $status.text('');
+  function clear(call){
+    return function() {
+      //never clear a frozen call
+      if(call === frozenCall) {
+        return;
+      }
+      this.node.style.cssText = '';
+      //don't clear the text of a frozen call status
+      if(frozenCall) {
+        return;
+      }
+      $status.text('');
+    }
   }
 
   function statusFn(call){
     return function () {
+      //don't update the status if we currently have a frozen call
+      if(frozenCall) {
+        call = frozenCall;
+      }
       //console.log(this);
       this.node.style.cssText = 'stroke: #000; stroke-width: 1;';
+      var optionalParameters = '';
+      if(call.optionalParameters.length) {
+        //convert any HTML into text, and display that
+        var field_html = $('<span class="optional-parameters"></span>').text(call.optionalParameters.join('\n')).get(0).outerHTML;
+        optionalParameters = '<br>Parameters: ' + field_html;
+      }
       $status.html(
         'Function: ' + call.functionName + '<br>' +
         'File: ' + call.fileName + '<br>' +
         'Line: ' + call.lineNumber + '<br>' +
-        'Time: ' + (call.timeIndex.end - call.timeIndex.start) + ' seconds (' + (timePercentage(call.timeIndex.end - call.timeIndex.start) * 100) + '%)'
+        'Time: ' + (call.timeIndex.end - call.timeIndex.start) + ' seconds (' + (timePercentage(call.timeIndex.end - call.timeIndex.start) * 100) + '%)' +
+        optionalParameters
       );
     };
+  }
+
+  //clicking a call should freeze the status until another call is clicked
+  function statusFreeze(call) {
+    return function() {
+      if(call === frozenCall) {
+        //unfreeze the status because we clicked the frozen call again
+        frozenCall = null;
+      } else {
+        var old_call = frozenCall;
+        frozenCall = call;
+        if(frozenNode) {
+          //clear any previously frozen calls
+          clear(old_call).call(frozenNode);
+        }
+        frozenNode = this;
+        //make sure we show the correct status
+        statusFn(call).call(this);
+      }
+    }
   }
 
 
@@ -236,7 +285,7 @@ $(function(){
         translate.height(-1)
       ).attr({
         fill: 'rgb(' + rand_between(90, 100) + '%,' + ((1-duration_pct) * 80) + '%,0%)'
-      }).hover(statusFn(call), clear);
+      }).hover(statusFn(call), clear(call)).click(statusFreeze(call));
       $(rect.node).attr('class', call.fileName);
       render.calls(paper, call.calls, translate, render_all);
     }
