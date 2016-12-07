@@ -60,6 +60,8 @@ $(function(){
       memoryBounds = {low: Number.POSITIVE_INFINITY, high: Number.NEGATIVE_INFINITY};
 
   var $status = $('#status');
+  var frozenCall = null,
+      frozenNode = null;
 
   function Call() {
     this.internals = [];
@@ -191,13 +193,27 @@ $(function(){
     return min + Math.ceil( (max-min+1) * Math.random() ) - 1;
   }
 
-  function clear(){
-    this.node.style.cssText = '';
-    $status.text('');
+  function clear(call){
+    return function() {
+      //never clear a frozen call
+      if(call === frozenCall) {
+        return;
+      }
+      this.node.style.cssText = '';
+      //don't clear the text of a frozen call status
+      if(frozenCall) {
+        return;
+      }
+      $status.text('');
+    }
   }
 
   function statusFn(call){
     return function () {
+      //don't update the status if we currently have a frozen call
+      if(frozenCall) {
+        call = frozenCall;
+      }
       //console.log(this);
       this.node.style.cssText = 'stroke: #000; stroke-width: 1;';
       var optionalParameters = '';
@@ -214,6 +230,26 @@ $(function(){
         optionalParameters
       );
     };
+  }
+
+  //clicking a call should freeze the status until another call is clicked
+  function statusFreeze(call) {
+    return function() {
+      if(call === frozenCall) {
+        //unfreeze the status because we clicked the frozen call again
+        frozenCall = null;
+      } else {
+        var old_call = frozenCall;
+        frozenCall = call;
+        if(frozenNode) {
+          //clear any previously frozen calls
+          clear(old_call).call(frozenNode);
+        }
+        frozenNode = this;
+        //make sure we show the correct status
+        statusFn(call).call(this);
+      }
+    }
   }
 
 
@@ -248,7 +284,7 @@ $(function(){
         translate.height(-1)
       ).attr({
         fill: 'rgb(' + rand_between(90, 100) + '%,' + ((1-duration_pct) * 80) + '%,0%)'
-      }).hover(statusFn(call), clear);
+      }).hover(statusFn(call), clear(call)).click(statusFreeze(call));
       $(rect.node).attr('class', call.fileName);
       render.calls(paper, call.calls, translate, render_all);
     }
