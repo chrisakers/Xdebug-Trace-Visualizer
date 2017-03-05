@@ -26,7 +26,10 @@ Example
 Contributers
 -----
 
-Thanks to [@olemartinorg](https://github.com/olemartinorg/) for usability, documentation, and bug fixes.
+Thanks to:
+- [@olemartinorg](https://github.com/olemartinorg/) for usability, documentation, and bug fixes
+- [@jammaloo](https://github.com/jammaloo) for call freezing and displaying optional params
+
 
 License
 =======
